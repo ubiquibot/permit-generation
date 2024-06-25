@@ -112,7 +112,7 @@ describe("generateErc721PermitSignature", () => {
 
   it("should throw an error if RPC is not defined", async () => {
     context.config.evmNetworkId = 123;
-    await expect(generateErc721PermitSignature(context, "123", "contribution")).rejects.toThrow("No config" + " setup for evmNetworkId: 123");
+    await expect(generateErc721PermitSignature(context, "123", "contribution")).rejects.toThrow("Failed to get fastest provider for networkId: 123");
   });
 
   it("should throw an error if NFT minter private key is not defined", async () => {

@@ -32,6 +32,7 @@
     "@octokit/webhooks": "^13.1.0",
     "@sinclair/typebox": "^0.32.5",
     "@supabase/supabase-js": "2.42.0",
+    "@ubiquity-dao/rpc-handler": "^1.1.0",
     "@uniswap/permit2-sdk": "^1.2.0",
     "dotenv": "^16.4.4",
     "ethers": "6.11.1",

@@ -3,7 +3,7 @@ import { ethers, keccak256, toUtf8Bytes } from "ethers";
 import { Context, Logger } from "../types/context";
 import { PermitReward, TokenType } from "../types";
 import { isIssueEvent } from "../types/typeguards";
-import { getPayoutConfigByNetworkId } from "../utils/payoutConfigByNetworkId";
+import { getFastestProvider } from "../utils/get-fastest-provider";
 
 interface Erc721PermitSignatureData {
   beneficiary: string;
@@ -95,11 +95,11 @@ export async function generateErc721PermitSignature(
     _walletAddress = walletAddress;
   }
 
-  const { rpc } = getPayoutConfigByNetworkId(_evmNetworkId);
+  const provider = await getFastestProvider(_evmNetworkId);
 
-  if (!rpc) {
-    _logger.error("RPC is not defined");
-    throw new Error("RPC is not defined");
+  if (!provider) {
+    _logger.error("Provider is not defined");
+    throw new Error("Provider is not defined");
   }
 
   if (!_nftContractAddress) {
@@ -108,14 +108,7 @@ export async function generateErc721PermitSignature(
     throw new Error(errorMessage);
   }
 
-  let provider;
   let adminWallet;
-  try {
-    provider = new ethers.JsonRpcProvider(rpc);
-  } catch (error) {
-    _logger.error("Failed to instantiate provider", error);
-    throw new Error("Failed to instantiate provider");
-  }
 
   try {
     adminWallet = new ethers.Wallet(_nftMinterPrivateKey, provider);
