@@ -15,8 +15,11 @@ export class Wallet extends Super {
       throw error;
     }
 
-    console.info("Successfully fetched wallet", { userId, address: data.wallets?.address });
-    return data.wallets?.address;
+    // Check if wallets is an array, if so, return the first element's address
+    const address = Array.isArray(data.wallets) ? data.wallets[0]?.address : data.wallets?.address;
+
+    console.info("Successfully fetched wallet", { userId, address: address });
+    return address;
   }
 
   async upsertWallet(userId: number, address: string) {
