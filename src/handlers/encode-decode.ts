@@ -60,7 +60,7 @@ export function encodePermits(permits: PermitReward[]) {
       }
     })
     .filter((o) => o) as RewardPermit[];
-  return Buffer.from(JSON.stringify(permitsDto)).toString("base64");
+  return btoa(JSON.stringify(permitsDto));
 }
 
 export function decodePermits(base64: string) {

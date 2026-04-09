@@ -16,7 +16,10 @@
     "knip-ci": "knip --no-exit-code --reporter json",
     "prepare": "husky install",
     "test": "jest",
-    "build": "tsup"
+    "build": "tsup",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-build": "wrangler deploy --dry-run --outdir=dist"
   },
   "keywords": [
     "typescript",
