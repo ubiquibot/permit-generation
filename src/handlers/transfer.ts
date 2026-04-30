@@ -1,9 +1,35 @@
 import { ethers, BigNumber } from "ethers";
 import { getRpcProvider } from "../utils/get-fastest-provider";
-import { getPrivateKey } from "../utils/keys";
+import { decrypt, parseDecryptedPrivateKey } from "../utils/keys";
 import { Context, Logger } from "../types/context";
-import { PermitReward, PERMIT2_ADDRESS } from "../types";
+import { PermitReward } from "../types";
 import { TransferResult, TransferSummary } from "../types/transfer";
+
+/**
+ * Gets and decrypts private key from encrypted config
+ */
+async function getPrivateKey(
+  evmPrivateEncrypted: string,
+  logger: Logger
+): Promise<string> {
+  try {
+    // Decrypt if encrypted
+    let decrypted = evmPrivateEncrypted;
+    if (evmPrivateEncrypted.includes(":")) {
+      decrypted = await decrypt(evmPrivateEncrypted, process.env.X25519_PRIVATE_KEY || "");
+    }
+    
+    const parsed = parseDecryptedPrivateKey(decrypted);
+    if (!parsed.privateKey) {
+      throw new Error("Failed to parse private key");
+    }
+    return parsed.privateKey;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to get private key: ${message}`);
+    throw error;
+  }
+}
 
 const DEFAULT_OPERATOR_FEE_PERCENT = 5;
 const DEFAULT_UBQ_ADDRESS = "0xef977127399639b6c5a2b3c1a3c07d7d67b17e3e"; // ubq.eth placeholder
@@ -25,7 +51,7 @@ async function estimateGas(
     ];
 
     const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, provider);
-    const gasEstimate = await tokenContract.transfer.estimateGas(to, amount, { from });
+    const gasEstimate = await tokenContract.estimateGas.transfer(to, amount, { from });
     return gasEstimate.mul(120).div(100); // 20% buffer
   } catch {
     return BigNumber.from(100000); // fallback
@@ -88,7 +114,7 @@ async function executeTransfer(
         success: false,
         beneficiary: to,
         amount: amount.toString(),
-        error: Insufficient balance. Have: , Need: ,
+        error: `Insufficient balance. Have: ${balance.toString()}, Need: ${amount.toString()}`,
       };
     }
 
@@ -96,7 +122,7 @@ async function executeTransfer(
     const tx = await tokenContract.transfer(to, amount);
     const receipt = await tx.wait();
 
-    logger.info(Transfer successful: , {
+    logger.info("Transfer successful", {
       from: signerAddress,
       to,
       amount: amount.toString(),
@@ -111,7 +137,7 @@ async function executeTransfer(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(Transfer failed for : );
+    logger.error("Transfer failed", { to, error: errorMessage });
     return {
       success: false,
       beneficiary: to,
@@ -129,7 +155,7 @@ export async function processAutomaticTransfers(
   context: Context,
   permits: PermitReward[]
 ): Promise<TransferSummary> {
-  const logger = context.loggers;
+  const logger = context.logger;
   const config = context.config as any;
   const transferEnabled = config.transfer ?? false;
 
@@ -144,7 +170,7 @@ export async function processAutomaticTransfers(
     };
   }
 
-  logger.info(Starting automatic transfer process for  permits);
+  logger.info(`Starting automatic transfer process for ${permits.length} permits`);
 
   const results: TransferResult[] = [];
   let successfulTransfers = 0;
@@ -177,7 +203,7 @@ export async function processAutomaticTransfers(
     wallet = new ethers.Wallet(privateKey, provider);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(Failed to get admin wallet: );
+    logger.error(`Failed to get admin wallet: ${errorMessage}`);
     return {
       totalTransfers: permits.length,
       successfulTransfers: 0,
@@ -186,7 +212,7 @@ export async function processAutomaticTransfers(
         success: false,
         beneficiary: p.beneficiary,
         amount: String(p.amount),
-        error: Failed to get admin wallet: ,
+        error: `Failed to get admin wallet: ${errorMessage}`,
       })),
     };
   }
@@ -194,13 +220,11 @@ export async function processAutomaticTransfers(
   // Process each permit
   for (const permit of permits) {
     if (permit.tokenType !== "ERC20") {
-      logger.info(Skipping ERC721 permit for  - manual claim required);
+      logger.info(`Skipping ERC721 permit for ${permit.beneficiary} - manual claim required`);
       continue;
     }
 
-    const amount = BigNumber.isBigNumber(permit.amount)
-      ? permit.amount
-      : BigNumber.from(permit.amount);
+    const amount = BigNumber.from(permit.amount);
 
     // Calculate fees
     const { beneficiaryAmount, operatorFee } = calculateOperatorFee(amount, feePercent);
@@ -236,7 +260,7 @@ export async function processAutomaticTransfers(
 
       if (!feeResult.success) {
         logger.error(
-          Operator fee transfer failed: ,
+          "Operator fee transfer failed",
           { amount: operatorFee.toString(), to: ubqAddress }
         );
       }
@@ -244,7 +268,7 @@ export async function processAutomaticTransfers(
   }
 
   logger.info(
-    Transfer process complete:  successful,  failed
+    `Transfer process complete: ${successfulTransfers} successful, ${failedTransfers} failed`
   );
 
   return {
@@ -281,9 +305,7 @@ export async function estimateTransferGas(
   for (const permit of permits) {
     if (permit.tokenType !== "ERC20") continue;
 
-    const amount = BigNumber.isBigNumber(permit.amount)
-      ? permit.amount
-      : BigNumber.from(permit.amount);
+    const amount = BigNumber.from(permit.amount);
 
     const gas = await estimateGas(
       permit.tokenAddress,

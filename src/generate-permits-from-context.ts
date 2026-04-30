@@ -37,7 +37,7 @@ export async function generatePermitsFromContext() {
     config: inputs.settings,
     octokit,
     env,
-    loggers: {
+    logger: {
       debug(message: unknown, ...optionalParams: unknown[]) {
         console.debug(message, ...optionalParams);
       },
@@ -67,12 +67,12 @@ export async function generatePermitsFromContext() {
     // Process automatic transfers if enabled
     const transferEnabled = (settings as any).transfer ?? false;
     if (transferEnabled) {
-      context.loggers.info("Automatic transfer is enabled, processing transfers...");
+      context.logger.info("Automatic transfer is enabled, processing transfers...");
       try {
         const transferSummary = await processAutomaticTransfers(context, permits);
-        context.loggers.info(`Transfer summary: ${JSON.stringify(transferSummary)}`);
+        context.logger.info(`Transfer summary: ${JSON.stringify(transferSummary)}`);
       } catch (error) {
-        context.loggers.error(`Automatic transfer failed: ${error}`);
+        context.logger.error(`Automatic transfer failed: ${error}`);
         // Don't fail the whole operation if transfer fails
       }
     }
