@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  entry: ["src/main.ts"],
+  entry: ["src/main.ts", "src/generate-permits-from-context.ts"],
   project: ["src/**/*.ts"],
   ignore: [],
   ignoreBinaries: ["publish"],
