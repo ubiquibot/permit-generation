@@ -35,12 +35,3 @@ export const permitGenerationSettingsSchema = T.Object({
 });
 
 export type PermitGenerationSettings = StaticDecode<typeof permitGenerationSettingsSchema>;
-
-// Transfer settings type for external use
-export type TransferSettings = Pick<
-  PermitGenerationSettings,
-  "transfer" | "operatorFeePercent" | "ubqAddress"
->;
-
-// Alias for backwards compatibility
-export type PermitGenerationSettingsWithTransfer = PermitGenerationSettings;

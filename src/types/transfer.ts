@@ -13,6 +13,3 @@ export interface TransferSummary {
   failedTransfers: number;
   results: TransferResult[];
 }
-
-// Re-export TransferSettings from plugin-input
-export type { TransferSettings, PermitGenerationSettingsWithTransfer } from "./plugin-input";
