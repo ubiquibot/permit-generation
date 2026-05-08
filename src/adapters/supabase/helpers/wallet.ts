@@ -8,6 +8,13 @@ export class Wallet extends Super {
     super(supabase, context);
   }
 
+  /**
+   * Retrieves the wallet address associated with a given GitHub user ID.
+   *
+   * @param userId - The GitHub numerical user ID.
+   * @returns A Promise that resolves to the wallet address string.
+   * @throws Error if the query fails.
+   */
   async getWalletByUserId(userId: number) {
     const { data, error } = await this.supabase.from("users").select("wallets(address)").eq("id", userId).single();
     if (error) {
@@ -20,6 +27,12 @@ export class Wallet extends Super {
     return address;
   }
 
+  /**
+   * Retrieves the wallet address associated with a given GitHub username.
+   *
+   * @param username - The GitHub username.
+   * @returns A Promise that resolves to the wallet address string, or null if not found.
+   */
   async getAddressByUsername(username: string): Promise<string | null> {
     const { data, error } = await this.supabase.from("users").select("wallets(address)").eq("username", username).single();
     if (error) {
@@ -30,6 +43,14 @@ export class Wallet extends Super {
     return (data.wallets as unknown as { address: string })?.address || null;
   }
 
+  /**
+   * Updates or inserts a wallet address for a user.
+   *
+   * @param userId - The GitHub numerical user ID.
+   * @param address - The wallet address to associate with the user.
+   * @returns A Promise that resolves when the operation is complete.
+   * @throws Error if the wallet or user update fails.
+   */
   async upsertWallet(userId: number, address: string) {
     const { error: walletError, data } = await this.supabase.from("wallets").upsert([{ address }]).select().single();
 

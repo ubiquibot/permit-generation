@@ -16,6 +16,16 @@ export interface Payload {
 
 export async function generateErc20PermitSignature(payload: Payload, username: string, amount: number, tokenAddress: string): Promise<PermitReward>;
 export async function generateErc20PermitSignature(context: Context, username: string, amount: number, tokenAddress: string): Promise<PermitReward>;
+/**
+ * Generates an ERC20 permit signature for a payout.
+ *
+ * @param contextOrPayload - Either the full context or a simplified payload for legacy support.
+ * @param username - The GitHub username of the recipient.
+ * @param amount - The amount of tokens to permit.
+ * @param tokenAddress - The contract address of the ERC20 token.
+ * @returns A Promise that resolves to the PermitReward object containing the signature and permit data.
+ * @throws Error if the user or wallet is not found, or if signing fails.
+ */
 export async function generateErc20PermitSignature(
   contextOrPayload: Context | Payload,
   username: string,
@@ -114,6 +124,14 @@ export async function generateErc20PermitSignature(
   }
 }
 
+/**
+ * Decrypts and parses the private key for permit generation.
+ *
+ * @param evmPrivateEncrypted - The encrypted private key string.
+ * @param logger - The logger instance.
+ * @returns A Promise that resolves to the decrypted private key.
+ * @throws Error if decryption fails or the key is not defined.
+ */
 async function getPrivateKey(evmPrivateEncrypted: string, logger: Logger) {
   try {
     const privateKeyDecrypted = await decrypt(evmPrivateEncrypted, String(process.env.X25519_PRIVATE_KEY));
@@ -128,6 +146,15 @@ async function getPrivateKey(evmPrivateEncrypted: string, logger: Logger) {
   }
 }
 
+/**
+ * Instantiates an admin wallet for signing.
+ *
+ * @param privateKey - The private key string.
+ * @param provider - The ethers provider instance.
+ * @param logger - The logger instance.
+ * @returns A Promise that resolves to the Wallet instance.
+ * @throws Error if the wallet cannot be instantiated.
+ */
 async function getAdminWallet(privateKey: string, provider: ethers.providers.Provider, logger: Logger) {
   try {
     return new ethers.Wallet(privateKey, provider);
@@ -138,6 +165,15 @@ async function getAdminWallet(privateKey: string, provider: ethers.providers.Pro
   }
 }
 
+/**
+ * Retrieves the decimal count for an ERC20 token.
+ *
+ * @param tokenAddress - The token contract address.
+ * @param provider - The ethers provider instance.
+ * @param logger - The logger instance.
+ * @returns A Promise that resolves to the decimal count.
+ * @throws Error if the decimals cannot be fetched.
+ */
 async function getTokenDecimals(tokenAddress: string, provider: ethers.providers.Provider, logger: Logger) {
   try {
     const erc20Abi = ["function decimals() public view returns (uint8)"];
