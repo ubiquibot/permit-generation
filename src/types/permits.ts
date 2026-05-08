@@ -16,6 +16,7 @@ interface CommonFields {
   owner: string;
   signature: string;
   networkId: number;
+  transactionHash?: string;
 }
 
 interface Erc20PermitReward extends CommonFields {

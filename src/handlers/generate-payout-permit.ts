@@ -2,6 +2,7 @@ import { PermitReward } from "../types";
 import { Context } from "../types/context";
 import { generateErc20PermitSignature } from "./generate-erc20-permit";
 import { generateErc721PermitSignature } from "./generate-erc721-permit";
+import { executeErc20Transfer } from "./execute-erc20-transfer";
 import { PermitRequest } from "../types/plugin-input";
 
 /**
@@ -14,12 +15,16 @@ export async function generatePayoutPermit(context: Context, permitRequests: Per
   const permits: PermitReward[] = [];
 
   for (const permitRequest of permitRequests) {
-    const { type, amount, username, contributionType, tokenAddress } = permitRequest;
+    const { type, amount, username, contributionType, tokenAddress, transfer } = permitRequest;
 
     let permit: PermitReward;
     switch (type) {
       case "ERC20":
-        permit = await generateErc20PermitSignature(context, username, amount, tokenAddress);
+        if (transfer || context.config.transfer) {
+          permit = await executeErc20Transfer(context, username, amount, tokenAddress);
+        } else {
+          permit = await generateErc20PermitSignature(context, username, amount, tokenAddress);
+        }
         break;
       case "ERC721":
         permit = await generateErc721PermitSignature(context, username, contributionType);

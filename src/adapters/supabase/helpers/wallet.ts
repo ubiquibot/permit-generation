@@ -9,14 +9,25 @@ export class Wallet extends Super {
   }
 
   async getWalletByUserId(userId: number) {
-    const { data, error } = await this.supabase.from("users").select("wallets(*)").eq("id", userId).single();
+    const { data, error } = await this.supabase.from("users").select("wallets(address)").eq("id", userId).single();
     if (error) {
       console.error("Failed to get wallet", { userId, error });
       throw error;
     }
 
-    console.info("Successfully fetched wallet", { userId, address: data.wallets?.address });
-    return data.wallets?.address;
+    const address = (data.wallets as unknown as { address: string })?.address;
+    console.info("Successfully fetched wallet", { userId, address });
+    return address;
+  }
+
+  async getAddressByUsername(username: string): Promise<string | null> {
+    const { data, error } = await this.supabase.from("users").select("wallets(address)").eq("username", username).single();
+    if (error) {
+      console.error("Failed to get wallet address by username", { username, error });
+      return null;
+    }
+
+    return (data.wallets as unknown as { address: string })?.address || null;
   }
 
   async upsertWallet(userId: number, address: string) {

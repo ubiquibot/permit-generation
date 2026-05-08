@@ -17,6 +17,7 @@ export const permitRequestSchema = T.Object({
   amount: T.Number(),
   contributionType: T.String(),
   tokenAddress: T.String(),
+  transfer: T.Optional(T.Boolean()),
 });
 
 export type PermitRequest = StaticDecode<typeof permitRequestSchema>;
@@ -25,6 +26,9 @@ export const permitGenerationSettingsSchema = T.Object({
   evmNetworkId: T.Number(),
   evmPrivateEncrypted: T.String(),
   permitRequests: T.Array(permitRequestSchema),
+  transfer: T.Optional(T.Boolean()),
+  feePercentage: T.Optional(T.Number()),
+  feeAddress: T.Optional(T.String()),
 });
 
 export type PermitGenerationSettings = StaticDecode<typeof permitGenerationSettingsSchema>;
