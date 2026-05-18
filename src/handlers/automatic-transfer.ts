@@ -122,15 +122,4 @@ export async function executeAutomaticTransfer(
   }
 }
 
-export async function getDynamicGasEstimate(
-  provider: ethers.providers.Provider,
-  _networkId: number
-): Promise<{ gasPrice: bigint; maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint }> {
-  const feeData = await provider.getFeeData();
 
-  return {
-    gasPrice: (feeData.gasPrice ?? ethers.BigNumber.from(0)).toBigInt(),
-    maxFeePerGas: feeData.maxFeePerGas?.toBigInt(),
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toBigInt(),
-  };
-}
