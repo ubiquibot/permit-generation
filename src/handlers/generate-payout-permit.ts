@@ -48,7 +48,7 @@ export async function generatePayoutPermit(context: Context, permitRequests: Per
       }
       const wallet = new ethers.Wallet(privateKey, provider);
 
-      const amountBigInt = BigInt(permit.amount);
+      const amountBigInt = BigInt(ethers.BigNumber.from(permit.amount).toString());
       const transferResult = await executeAutomaticTransfer(
         provider,
         wallet,

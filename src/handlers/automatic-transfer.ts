@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { PERMIT2_ADDRESS } from "../types";
 import { Logger } from "../types/context";
 
 const UBQ_ETH = "0xobq.eth"; // ENS resolution for ubq.eth
@@ -29,7 +28,7 @@ export async function estimateGasForTransfer(
   try {
     // Estimate gas for transfer
     const gasEstimate = await tokenContract.estimateGas.transfer(to, amount, { from });
-    return gasEstimate;
+    return gasEstimate.toBigInt();
   } catch {
     // Fallback to rough estimate if estimation fails
     return BigInt(65000); // standard gas for ERC20 transfer
@@ -66,10 +65,7 @@ export async function executeAutomaticTransfer(
     // Get gas price
     const feeData = await provider.getFeeData();
     const gasPrice = feeData.gasPrice ?? feeData.maxFeePerGas ?? ethers.BigNumber.from(0);
-    const gasCost = gasEstimate * gasPrice;
-
-    // Total needed: amount + gas cost
-    const totalNeeded = amountAfterFee + gasCost;
+    const gasCost = ethers.BigNumber.from(gasEstimate).mul(gasPrice);
 
     // Check balance
     const balance = await provider.getBalance(wallet.address);
@@ -80,20 +76,24 @@ export async function executeAutomaticTransfer(
     );
     const tokenBalance = await tokenContract.balanceOf(wallet.address);
 
-    if (tokenBalance < amountAfterFee) {
-      return { success: false, error: `Insufficient token balance: ${tokenBalance} < ${amountAfterFee}` };
+    if (tokenBalance.lt(ethers.BigNumber.from(amountAfterFee))) {
+      return { success: false, error: `Insufficient token balance: ${tokenBalance.toString()} < ${amountAfterFee.toString()}` };
     }
 
-    if (balance < gasCost) {
-      return { success: false, error: `Insufficient ETH for gas: ${balance} < ${gasCost}` };
+    if (balance.lt(gasCost)) {
+      return { success: false, error: `Insufficient ETH for gas: ${balance.toString()} < ${gasCost.toString()}` };
     }
 
     // Execute transfer to beneficiary
-    const tokenWithSigner = new ethers.Contract(tokenAddress, ["function transfer(address to, uint256 amount) returns (bool)"], wallet);
-    const tx = await tokenWithSigner.transfer(beneficiary, amountAfterFee);
+    const tokenWithSigner = new ethers.Contract(
+      tokenAddress,
+      ["function transfer(address to, uint256 amount) returns (bool)"],
+      wallet
+    );
+    const tx = await tokenWithSigner.transfer(beneficiary, ethers.BigNumber.from(amountAfterFee));
     const receipt = await tx.wait();
 
-    logger.info(`Transfer successful: ${receipt.transactionHash}, amount: ${amountAfterFee}, fee: ${fee}`);
+    logger.info(`Transfer successful: ${receipt.transactionHash}, amount: ${amountAfterFee.toString()}, fee: ${fee.toString()}`);
 
     // Transfer operator fee to ubq.eth if fee > 0
     let feeTxHash: string | undefined;
@@ -104,20 +104,10 @@ export async function executeAutomaticTransfer(
           ["function transfer(address to, uint256 amount) returns (bool)"],
           wallet
         );
-        // Resolve ubq.eth - use raw address if ENS fails
-        let operatorAddress = UBQ_ETH;
-        try {
-          const resolver = await provider.getResolver("ubq.eth");
-          if (resolver) {
-            operatorAddress = await resolver.address;
-          }
-        } catch {
-          logger.debug("Could not resolve ubq.eth, using ENS name directly");
-        }
-        const feeTx = await feeTokenWithSigner.transfer(operatorAddress, fee);
+        const feeTx = await feeTokenWithSigner.transfer(UBQ_ETH, ethers.BigNumber.from(fee));
         const feeReceipt = await feeTx.wait();
         feeTxHash = feeReceipt.transactionHash;
-        logger.info(`Operator fee transferred: ${feeReceipt.transactionHash}, amount: ${fee}`);
+        logger.info(`Operator fee transferred: ${feeReceipt.transactionHash}, amount: ${fee.toString()}`);
       } catch (feeError) {
         logger.warn(`Failed to transfer operator fee: ${feeError}`);
         // Don't fail the whole transfer if fee transfer fails
@@ -134,13 +124,13 @@ export async function executeAutomaticTransfer(
 
 export async function getDynamicGasEstimate(
   provider: ethers.providers.Provider,
-  networkId: number
+  _networkId: number
 ): Promise<{ gasPrice: bigint; maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint }> {
   const feeData = await provider.getFeeData();
 
   return {
-    gasPrice: feeData.gasPrice ?? ethers.BigNumber.from(0),
-    maxFeePerGas: feeData.maxFeePerGas ?? undefined,
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? undefined,
+    gasPrice: (feeData.gasPrice ?? ethers.BigNumber.from(0)).toBigInt(),
+    maxFeePerGas: feeData.maxFeePerGas?.toBigInt(),
+    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toBigInt(),
   };
 }
